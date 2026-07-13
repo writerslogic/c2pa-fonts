@@ -1,0 +1,156 @@
+name: Release
+
+# Publishes the crate to crates.io, the wasm package to npm, and cuts a GitHub
+# release. Triggered by pushing a semver tag (v0.2.0) or manually via dispatch.
+#
+# Required repository secrets:
+#   CARGO_REGISTRY_TOKEN  crates.io API token (scope: publish-update)
+#   NPM_TOKEN             npm automation token with publish rights
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.2.0)'
+        required: true
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  CARGO_TERM_COLOR: always
+  # npm scope for the wasm package -> @writerslogic/c2pa-fonts
+  NPM_SCOPE: writerslogic
+
+jobs:
+  validate:
+    name: Validate and gate
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Resolve and validate tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::invalid tag format: $TAG (expected vX.Y.Z)"; exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Cargo.toml version matches tag
+        run: |
+          CARGO_VERSION=$(grep -m1 '^version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ "$CARGO_VERSION" != "${{ steps.tag.outputs.version }}" ]; then
+            echo "::error::Cargo.toml version ($CARGO_VERSION) != tag (${{ steps.tag.outputs.version }})"
+            exit 1
+          fi
+
+      # Real .ttf/.otf fonts for the hard-binding round-trip integration test.
+      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core fonts-freefont-otf
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Test (includes c2pa-rs round-trip conformance)
+        run: cargo test --all-features
+      - name: Verify wasm32 build
+        run: cargo build --target wasm32-unknown-unknown
+
+  crates-io:
+    name: Publish to crates.io
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo publish
+        run: cargo publish --token "$CARGO_REGISTRY_TOKEN"
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  npm:
+    name: Publish wasm package to npm
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Build wasm package (@${{ env.NPM_SCOPE }}/c2pa-fonts)
+        run: wasm-pack build --release --target web --scope "$NPM_SCOPE" --out-dir pkg
+
+      - name: Publish to npm
+        run: npm publish --access public
+        working-directory: pkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Stage package tarball for the release
+        run: npm pack --pack-destination "$GITHUB_WORKSPACE" >/dev/null
+        working-directory: pkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: '*.tgz'
+
+  github-release:
+    name: Create GitHub release
+    needs: [validate, crates-io, npm]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: dist
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: RELEASE_NOTES.md
+
+      - name: Attest package provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.tgz
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: c2pa-fonts ${{ needs.validate.outputs.tag }}
+          tag_name: ${{ needs.validate.outputs.tag }}
+          draft: false
+          prerelease: ${{ contains(needs.validate.outputs.tag, '-') }}
+          body_path: RELEASE_NOTES.md
+          files: dist/*.tgz

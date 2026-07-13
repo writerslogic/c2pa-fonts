@@ -1,0 +1,27 @@
+[package]
+name = "c2pa-fonts"
+version = "0.2.0"
+edition = "2021"
+description = "C2PA manifest embedding, hard binding, and verification for OpenType/TrueType (SFNT) fonts"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/writerslogic/c2pa-fonts"
+keywords = ["c2pa", "provenance", "font", "opentype", "sfnt"]
+categories = ["encoding", "parser-implementations"]
+readme = "README.md"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# Enables the hard-binding hashers and the c2pa-rs validation bridge.
+validation = ["dep:c2pa"]
+
+[dependencies]
+c2pa = { version = "0.89", optional = true, default-features = false, features = ["rust_native_crypto"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+
+[package.metadata.docs.rs]
+all-features = true
