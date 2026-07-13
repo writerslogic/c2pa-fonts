@@ -16,12 +16,17 @@ crate-type = ["cdylib", "rlib"]
 default = []
 # Enables the hard-binding hashers and the c2pa-rs validation bridge.
 validation = ["dep:c2pa"]
+# Enables the PyO3 Python extension module (built via maturin).
+python = ["dep:pyo3"]
 
 [dependencies]
 c2pa = { version = "0.89", optional = true, default-features = false, features = ["rust_native_crypto"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+pyo3 = { version = "0.25", optional = true, features = ["extension-module", "abi3-py39"] }
 
 [package.metadata.docs.rs]
 all-features = true

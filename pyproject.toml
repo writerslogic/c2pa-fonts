@@ -1,0 +1,24 @@
+[build-system]
+requires = ["maturin>=1.5,<2"]
+build-backend = "maturin"
+
+[project]
+name = "c2pa-fonts"
+description = "C2PA manifest embedding, hard binding, and verification for OpenType/TrueType (SFNT) fonts"
+readme = "README.md"
+license = { text = "MIT OR Apache-2.0" }
+requires-python = ">=3.9"
+keywords = ["c2pa", "provenance", "font", "opentype", "sfnt"]
+classifiers = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Topic :: Multimedia :: Graphics",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/writerslogic/c2pa-fonts"
+
+[tool.maturin]
+features = ["python", "pyo3/extension-module"]
+module-name = "c2pa_fonts"

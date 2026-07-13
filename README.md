@@ -49,6 +49,13 @@ c2pa-fonts = "0.2"
 c2pa-fonts = { version = "0.2", features = ["validation"] }
 ```
 
+Bindings for the zero-dependency core (embed, extract, hard-binding geometry) ship for JavaScript and Python:
+
+```sh
+npm install @writerslogic/c2pa-fonts   # wasm-bindgen, camelCase API
+pip install c2pa-fonts                  # PyO3 abi3 wheel
+```
+
 ### Embed an already-signed manifest
 
 ```rust

@@ -23,6 +23,8 @@
 
 mod binding;
 mod error;
+#[cfg(all(feature = "python", not(target_arch = "wasm32")))]
+mod python;
 mod reader;
 mod sfnt;
 mod table;
