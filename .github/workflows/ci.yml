@@ -53,4 +53,7 @@ jobs:
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
       # Real .ttf/.otf fonts for the hard-binding round-trip integration test.
       - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core fonts-freefont-otf
-      - run: cargo test --all-features
+      - run: cargo test
+      # `python` is excluded: pyo3 extension-module leaves libpython symbols
+      # undefined, which cannot link a test binary. It is built via maturin.
+      - run: cargo test --features validation

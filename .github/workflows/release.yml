@@ -70,10 +70,15 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
+      # `python` is excluded from tests: pyo3 extension-module leaves libpython
+      # symbols undefined, which cannot link a test binary (it is built via
+      # maturin in the pypi jobs). `validation` runs the c2pa-rs round trip.
       - name: Test (includes c2pa-rs round-trip conformance)
-        run: cargo test --all-features
+        run: cargo test --features validation
       - name: Verify wasm32 build
         run: cargo build --target wasm32-unknown-unknown
+      # The python extension is built and verified by the pypi-wheels job via
+      # maturin (which supplies the extension-module linker flags).
 
   crates-io:
     name: Publish to crates.io
