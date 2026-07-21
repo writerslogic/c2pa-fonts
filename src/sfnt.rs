@@ -269,11 +269,11 @@ fn tag_name(tag: &[u8; 4]) -> String {
     String::from_utf8_lossy(tag).into_owned()
 }
 
-fn read_u16(data: &[u8], off: usize) -> u16 {
+pub(crate) fn read_u16(data: &[u8], off: usize) -> u16 {
     u16::from_be_bytes([data[off], data[off + 1]])
 }
 
-fn read_u32(data: &[u8], off: usize) -> u32 {
+pub(crate) fn read_u32(data: &[u8], off: usize) -> u32 {
     u32::from_be_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]])
 }
 

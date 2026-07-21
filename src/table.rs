@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::sfnt::{read_u16, read_u32};
 
 /// SFNT table tag identifying the C2PA table.
 pub const C2PA_TAG: [u8; 4] = *b"C2PA";
@@ -110,14 +111,6 @@ fn slice<'a>(data: &'a [u8], offset: usize, length: usize, what: &str) -> Result
         )));
     }
     Ok(&data[offset..end])
-}
-
-fn read_u16(data: &[u8], off: usize) -> u16 {
-    u16::from_be_bytes([data[off], data[off + 1]])
-}
-
-fn read_u32(data: &[u8], off: usize) -> u32 {
-    u32::from_be_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]])
 }
 
 #[cfg(test)]

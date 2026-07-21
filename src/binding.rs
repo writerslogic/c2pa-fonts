@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::sfnt::{self, locate_tables};
+use crate::sfnt::{self, locate_tables, read_u32};
 use crate::table::C2PA_TAG;
 
 const HEAD_TAG: [u8; 4] = *b"head";
@@ -78,10 +78,6 @@ pub fn data_hash_exclusions(font: &[u8]) -> Result<Vec<Exclusion>, Error> {
 
     exclusions.sort_by_key(|e| e.start);
     Ok(exclusions)
-}
-
-fn read_u32(data: &[u8], off: usize) -> u32 {
-    u32::from_be_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]])
 }
 
 #[cfg(feature = "validation")]
