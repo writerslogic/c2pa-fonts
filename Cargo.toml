@@ -2,6 +2,8 @@
 name = "c2pa-fonts"
 version = "0.2.0"
 edition = "2021"
+# One MSRV across the crate family; verified with `cargo +1.87 check`.
+rust-version = "1.87"
 description = "C2PA manifest embedding, hard binding, and verification for OpenType/TrueType (SFNT) fonts"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/writerslogic/c2pa-fonts"
