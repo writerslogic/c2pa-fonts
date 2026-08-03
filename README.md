@@ -10,6 +10,8 @@
 
 Implements the **font embedding** method from the [C2PA Technical Specification](https://c2pa.org/specifications/) and its `c2pa.hash.data` hard binding, for fonts that conform to the [OpenType](https://learn.microsoft.com/en-us/typography/opentype/spec/) or [OFF](https://www.iso.org/standard/52136.html) (ISO/IEC 14496-22) specification.
 
+> The specification marks this table format as **preliminary**: *"The `C2PA` table format is not yet defined in the OFF nor OTF specification; the following definition is preliminary."* The layout below tracks that definition and will follow it if it changes.
+
 The manifest is stored in a dedicated SFNT table with the tag `C2PA`, which may carry an embedded Manifest Store, a remote manifest URI, or both:
 
 | Field | Type | Description |
