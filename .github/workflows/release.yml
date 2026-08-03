@@ -26,7 +26,6 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  # npm scope for the wasm package -> @writerslogic/c2pa-fonts
 
 jobs:
   validate:
