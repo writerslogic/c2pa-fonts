@@ -27,7 +27,6 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   # npm scope for the wasm package -> @writerslogic/c2pa-fonts
-  NPM_SCOPE: writerslogic
 
 jobs:
   validate:
@@ -107,14 +106,27 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Build wasm package (@${{ env.NPM_SCOPE }}/c2pa-fonts)
-        run: wasm-pack build --release --target web --scope "$NPM_SCOPE" --out-dir pkg
+      # Unscoped, matching every other crate in the family. The scoped
+      # `@writerslogic/c2pa-fonts` was this crate alone and is deprecated in
+      # favour of the bare name.
+      - name: Build wasm package
+        run: wasm-pack build --release --target web --out-dir pkg
 
       - name: Publish to npm
-        run: npm publish --access public
-        working-directory: pkg
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::warning::NPM_TOKEN not set; skipping npm publish"
+            exit 0
+          fi
+          ver="$(grep '^version = ' ../Cargo.toml | head -1 | cut -d'"' -f2)"
+          if npm view "c2pa-fonts@${ver}" version >/dev/null 2>&1; then
+            echo "npm already has c2pa-fonts@${ver}; skipping"
+            exit 0
+          fi
+          npm publish --access public
+        working-directory: pkg
 
       - name: Stage package tarball for the release
         run: npm pack --pack-destination "$GITHUB_WORKSPACE" >/dev/null
