@@ -7,6 +7,7 @@ pub const C2PA_TAG: [u8; 4] = *b"C2PA";
 /// Major version written into new C2PA tables. The format is preliminary in
 /// the C2PA specification, so this crate emits version 0.1.
 pub const MAJOR_VERSION: u16 = 0;
+/// Minor version this crate writes into the `C2PA` table record.
 pub const MINOR_VERSION: u16 = 1;
 
 /// Fixed portion of the C2PA table record, preceding the URI and manifest data.
@@ -18,13 +19,18 @@ const HEADER_LEN: usize = 20;
 /// manifest, an embedded Manifest Store, or both.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct C2paTable {
+    /// Major version from the table record.
     pub major_version: u16,
+    /// Minor version from the table record.
     pub minor_version: u16,
+    /// URI of the active manifest, when the table carries one.
     pub active_manifest_uri: Option<String>,
+    /// Embedded C2PA Manifest Store, when the table carries one.
     pub manifest_store: Option<Vec<u8>>,
 }
 
 impl C2paTable {
+    /// Build a table at this crate's version from a URI, a store, or both.
     pub fn new(active_manifest_uri: Option<String>, manifest_store: Option<Vec<u8>>) -> Self {
         Self {
             major_version: MAJOR_VERSION,
@@ -62,6 +68,7 @@ impl C2paTable {
         out
     }
 
+    /// Decode a `C2PA` table record from its raw bytes.
     pub fn decode(data: &[u8]) -> Result<Self, Error> {
         if data.len() < HEADER_LEN {
             return Err(Error::InvalidTable(

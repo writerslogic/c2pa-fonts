@@ -10,7 +10,9 @@ const STORE_LENGTH_FIELD: usize = 16;
 /// A byte range excluded from the `c2pa.hash.data` hard binding.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Exclusion {
+    /// Byte offset of the first excluded byte.
     pub start: u64,
+    /// Number of bytes excluded.
     pub length: u64,
 }
 

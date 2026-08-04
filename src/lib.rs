@@ -21,6 +21,8 @@
 //! The `C2PA` font table format is **preliminary** in the C2PA specification and
 //! is not yet defined in the OpenType/OFF specifications.
 
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
 mod binding;
 mod error;
 #[cfg(all(feature = "python", not(target_arch = "wasm32")))]

@@ -7,7 +7,10 @@ use crate::table::{C2paTable, C2PA_TAG};
 /// remote manifest URI, or both.
 #[derive(Debug, Clone)]
 pub struct ManifestSource {
+    /// URI of the active manifest. The caller fetches the bytes; this crate
+    /// performs no network I/O.
     pub active_manifest_uri: Option<String>,
+    /// Embedded C2PA Manifest Store bytes.
     pub manifest_store: Option<Vec<u8>>,
 }
 

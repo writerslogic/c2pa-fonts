@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Errors from reading, writing, or validating a font's `C2PA` table.
 #[derive(Debug)]
 pub enum Error {
     /// No `C2PA` table is present in the font.
@@ -16,6 +17,7 @@ pub enum Error {
     InvalidTable(String),
     /// Hard-binding or delegated (c2pa-rs) validation failed.
     Validation(String),
+    /// An underlying I/O failure.
     Io(std::io::Error),
 }
 
