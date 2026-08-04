@@ -90,6 +90,8 @@ mod hashing {
     use std::io::Cursor;
 
     impl Exclusion {
+        /// This exclusion as a c2pa-rs [`HashRange`], ready to attach to a
+        /// `c2pa.hash.data` assertion.
         pub fn to_hash_range(self) -> HashRange {
             HashRange::new(self.start, self.length)
         }
