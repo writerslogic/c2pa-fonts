@@ -1,3 +1,7 @@
+# c2pa-fonts
+
+_C2PA manifest embedding, hard binding, and verification for OpenType/TrueType (SFNT) fonts._
+
 <p align="center">
   <a href="https://crates.io/crates/c2pa-fonts"><img src="https://img.shields.io/crates/v/c2pa-fonts.svg" alt="crates.io"></a>
   <a href="https://docs.rs/c2pa-fonts"><img src="https://docs.rs/c2pa-fonts/badge.svg" alt="docs.rs"></a>
@@ -10,6 +14,7 @@
 
 Implements the **font embedding** method from the [C2PA Technical Specification](https://c2pa.org/specifications/) and its `c2pa.hash.data` hard binding, for fonts that conform to the [OpenType](https://learn.microsoft.com/en-us/typography/opentype/spec/) or [OFF](https://www.iso.org/standard/52136.html) (ISO/IEC 14496-22) specification.
 
+> [!WARNING]
 > The specification marks this table format as **preliminary**: *"The `C2PA` table format is not yet defined in the OFF nor OTF specification; the following definition is preliminary."* The layout below tracks that definition and will follow it if it changes.
 
 The manifest is stored in a dedicated SFNT table with the tag `C2PA`, which may carry an embedded Manifest Store, a remote manifest URI, or both:
@@ -20,6 +25,7 @@ The manifest is stored in a dedicated SFNT table with the tag `C2PA`, which may 
 | `activeManifestUri` | `Offset32` + `uint16` | URI of the active manifest (offset + length; `0` when absent) |
 | `manifestStore` | `Offset32` + `uint32` | Embedded C2PA Manifest Store (offset + length; `0` when absent) |
 
+> [!WARNING]
 > **The `C2PA` font table is preliminary.** The C2PA specification states the table format "is not yet defined in the OFF nor OpenType specification; the following definition is preliminary." There is no stable, ratified conformance requirement for fonts. This crate tracks the preliminary definition and emits table version `0.1`.
 
 ## What this crate does — and does not
@@ -43,16 +49,16 @@ Font collections (`.ttc`/`ttcf`) and WOFF/WOFF2 are rejected explicitly; decompr
 
 ```toml
 [dependencies]
-c2pa-fonts = "0.2"
+c2pa-fonts = "0.3"
 # Hard-binding hashers and the c2pa-rs validation bridge:
-c2pa-fonts = { version = "0.2", features = ["validation"] }
+c2pa-fonts = { version = "0.3", features = ["validation"] }
 ```
 
 Bindings for the zero-dependency core (embed, extract, hard-binding geometry) ship for JavaScript and Python:
 
 ```sh
-npm install @writerslogic/c2pa-fonts   # wasm-bindgen, camelCase API
-pip install c2pa-fonts                  # PyO3 abi3 wheel
+npm install c2pa-fonts   # wasm-bindgen, camelCase API
+pip install c2pa-fonts   # PyO3 abi3 wheel
 ```
 
 ### Embed an already-signed manifest
