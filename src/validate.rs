@@ -1,8 +1,9 @@
 use std::io::Cursor;
 
+use c2pa::assertions::BoxHash;
 use c2pa::{Context, Reader, ValidationState};
 
-use crate::binding::data_hash_exclusions;
+use crate::binding::{data_hash_exclusions, verify_box_hash};
 use crate::error::Error;
 use crate::reader::read_manifest;
 
@@ -14,9 +15,8 @@ const FONT_MIME: &str = "font/sfnt";
 /// The outcome of validating a font's C2PA manifest end to end.
 #[derive(Debug, Clone)]
 pub struct Validation {
-    /// Whether the `c2pa.hash.data` hard binding holds: this crate's exclusion
-    /// geometry is well-formed and c2pa-rs confirmed the data hash matches the
-    /// font's bytes over those exclusions.
+    /// Whether the font's hard binding holds. Current manifests use
+    /// `c2pa.hash.boxes`; legacy data-hash manifests remain readable.
     pub hard_binding_valid: bool,
     /// Overall validation state from c2pa-rs (signature, trust, assertions).
     pub state: ValidationState,
@@ -31,11 +31,11 @@ pub struct Validation {
 /// Validate a font's C2PA manifest end to end.
 ///
 /// This crate locates and extracts the Manifest Store (step 1) and owns the
-/// format-specific hard binding (step 5): it derives the `c2pa.hash.data`
-/// exclusion ranges from the font structure — the part c2pa-rs cannot do for
-/// fonts — while c2pa-rs performs the generic hash comparison over those
-/// exclusions and all of COSE signature verification, X.509 trust evaluation,
-/// and assertion/ingredient validation.
+/// format-specific hard binding (step 5): it verifies the font table sequence
+/// and hashes table contents for `c2pa.hash.boxes`, including the special
+/// zeroed treatment of `head.checkSumAdjustment`. c2pa-rs performs COSE
+/// signature verification, X.509 trust evaluation, and remaining assertion and
+/// ingredient validation.
 ///
 /// Trust is evaluated with c2pa-rs default settings; configure trust anchors
 /// through c2pa-rs and inspect [`Validation::state`] and the code lists.
@@ -65,7 +65,14 @@ pub fn validate(font: &[u8]) -> Result<Validation, Error> {
         }
     }
 
-    let hard_binding_valid = hard_binding_valid(font, &success_codes, &failure_codes);
+    let hard_binding_valid = if let Some(manifest) = reader.active_manifest() {
+        match manifest.find_assertion::<BoxHash>(BoxHash::LABEL) {
+            Ok(assertion) => verify_box_hash(font, &assertion, None).unwrap_or(false),
+            Err(_) => legacy_data_hash_valid(font, &success_codes, &failure_codes),
+        }
+    } else {
+        false
+    };
 
     Ok(Validation {
         hard_binding_valid,
@@ -79,7 +86,7 @@ pub fn validate(font: &[u8]) -> Result<Validation, Error> {
 /// The hard binding holds when this crate can derive the font's exclusion
 /// geometry (so the `C2PA` table and its store region are intact) and c2pa-rs
 /// confirmed the data hash matches over those exclusions.
-fn hard_binding_valid(font: &[u8], success: &[String], failure: &[String]) -> bool {
+fn legacy_data_hash_valid(font: &[u8], success: &[String], failure: &[String]) -> bool {
     if data_hash_exclusions(font).is_err() {
         return false;
     }

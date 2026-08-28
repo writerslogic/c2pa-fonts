@@ -7,7 +7,7 @@
 //!
 //! Implements the C2PA font embedding method — storing a C2PA Manifest Store
 //! and/or a remote manifest URI in a `C2PA` SFNT table — together with its
-//! `c2pa.hash.data` hard binding. Embedding re-serializes the font so the table
+//! `c2pa.hash.boxes` hard binding. Embedding re-serializes the font so the table
 //! directory, offsets, and checksums (including `head.checkSumAdjustment`) stay
 //! valid.
 //!
@@ -47,6 +47,8 @@ pub use writer::{
 };
 
 #[cfg(feature = "validation")]
-pub use binding::{compute_data_hash, data_hash_ranges, verify_data_hash};
+pub use binding::{
+    compute_box_hash, compute_data_hash, data_hash_ranges, verify_box_hash, verify_data_hash,
+};
 #[cfg(feature = "validation")]
 pub use validate::{validate, Validation};
