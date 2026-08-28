@@ -64,7 +64,9 @@ pub fn embed_manifest(font: &[u8], source: ManifestSource) -> Result<Vec<u8>, Er
 pub struct ReservedFont {
     /// The serialized font with a zero-filled Manifest Store of `reserve_size`.
     pub font: Vec<u8>,
-    /// The `c2pa.hash.data` exclusion ranges for this layout.
+    /// Legacy `c2pa.hash.data` exclusion ranges for this layout. With the
+    /// `validation` feature, new manifests should call `compute_box_hash` on
+    /// [`ReservedFont::font`].
     pub exclusions: Vec<Exclusion>,
     /// Absolute byte offset of the reserved Manifest Store within `font`.
     pub manifest_offset: u64,
@@ -73,11 +75,12 @@ pub struct ReservedFont {
 }
 
 /// Reserve space for a manifest of `reserve_size` bytes in a font's `C2PA`
-/// table, returning the font-with-placeholder and its hard-binding exclusions.
+/// table, returning the font-with-placeholder and its legacy data-hash
+/// exclusions.
 ///
-/// This is the first step of the placeholder-then-fill flow: reserve, then hash
-/// the returned font over the returned exclusions, then sign a manifest of
-/// exactly `reserve_size` bytes, then [`fill_manifest`].
+/// This is the first step of the placeholder-then-fill flow: reserve, compute a
+/// general box hash over the returned font, sign a manifest of at most
+/// `reserve_size` bytes, then [`fill_manifest`].
 pub fn reserve_manifest(
     font: &[u8],
     reserve_size: usize,
@@ -110,11 +113,12 @@ pub fn reserve_manifest(
 ///
 /// The signed manifest must be no larger than the reserved size; if smaller it
 /// is zero-padded to the reserved size so the store region — and therefore the
-/// hard-binding exclusions and offsets — are unchanged. Trailing padding after
+/// table sequence and offsets — are unchanged. Trailing padding after
 /// the JUMBF superbox is ignored by C2PA readers. The font is re-serialized so
 /// the `C2PA` table checksum and `head.checkSumAdjustment` are recomputed;
-/// because those two fields and the store are the hard-binding exclusions, the
-/// data hash computed over the reserved font still matches.
+/// because the box hash excludes `C2PA` and treats
+/// `head.checkSumAdjustment` as zero, the box hash computed over the reserved
+/// font still matches.
 pub fn fill_manifest(reserved_font: &[u8], signed_manifest: &[u8]) -> Result<Vec<u8>, Error> {
     let mut parsed = SfntFont::parse(reserved_font)?;
     let existing = parsed.table(&C2PA_TAG).ok_or(Error::NotFound)?;

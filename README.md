@@ -12,7 +12,7 @@ _C2PA manifest embedding, hard binding, and verification for OpenType/TrueType (
 
 ## Overview
 
-Implements the **font embedding** method from the [C2PA Technical Specification](https://c2pa.org/specifications/) and its `c2pa.hash.data` hard binding, for fonts that conform to the [OpenType](https://learn.microsoft.com/en-us/typography/opentype/spec/) or [OFF](https://www.iso.org/standard/52136.html) (ISO/IEC 14496-22) specification.
+Implements the **font embedding** method from the [C2PA Technical Specification](https://c2pa.org/specifications/) and its `c2pa.hash.boxes` hard binding, for fonts that conform to the [OpenType](https://learn.microsoft.com/en-us/typography/opentype/spec/) or [OFF](https://www.iso.org/standard/52136.html) (ISO/IEC 14496-22) specification.
 
 > [!WARNING]
 > The specification marks this table format as **preliminary**: *"The `C2PA` table format is not yet defined in the OFF nor OTF specification; the following definition is preliminary."* The layout below tracks that definition and will follow it if it changes.
@@ -38,7 +38,7 @@ Validating a font's provenance is a fixed pipeline. Only two steps are font-spec
 | 2. Parse the JUMBF/CBOR manifest | c2pa-rs |
 | 3. Verify the COSE signature | c2pa-rs |
 | 4. Evaluate the X.509 trust chain | c2pa-rs |
-| 5. Hard binding: `c2pa.hash.data` exclusion geometry over the font | **c2pa-fonts** |
+| 5. Hard binding: `c2pa.hash.boxes` over SFNT tables | **c2pa-fonts** |
 | 6. Validate assertions / ingredients | c2pa-rs |
 
 This crate does **not** build manifests, sign, or implement COSE/trust — that is the [official `c2pa` SDK](https://crates.io/crates/c2pa)'s job. With the `validation` feature it delegates steps 2–4 and 6 to c2pa-rs, so an application using both can act as a C2PA **generator and verifier** for fonts. (This crate is a building block; C2PA conformance certification is a separate program for products, which this crate makes no claim to.)
@@ -76,20 +76,27 @@ let signed = embed_manifest(font, ManifestSource::embedded(manifest_store)).unwr
 The manifest signs over the font, so the font must be laid out before signing. Reserve the store, hash over the returned exclusions, sign a manifest that fits, then fill:
 
 ```rust
-use c2pa_fonts::{reserve_manifest, fill_manifest, data_hash_ranges};
+use c2pa_fonts::{reserve_manifest, fill_manifest, compute_box_hash};
 
-// 1. Reserve space; get the font-with-placeholder and its exclusions.
+// 1. Reserve space so the final C2PA table is present in the table sequence.
 let reserved = reserve_manifest(font, 30_000, None).unwrap();
 
-// 2. Hash reserved.font over reserved.exclusions and sign a data-hashed manifest
-//    with the c2pa SDK (see tests/roundtrip.rs for the full flow).
-//    data_hash_ranges(&reserved.font) yields the ranges as c2pa `HashRange`s.
+// 2. Build the general box hash and add it to the manifest with the c2pa SDK.
+let box_hash = compute_box_hash(&reserved.font, "sha256").unwrap();
+// builder.add_assertion("c2pa.hash.boxes", &box_hash)?; then sign.
 
 // 3. Fill the reserved region with the signed manifest (<= reserved size).
 let final_font = fill_manifest(&reserved.font, &signed_manifest).unwrap();
 ```
 
-The exclusions cover the manifest store **and** the two checksum fields that depend on it (the `C2PA` table's directory checksum and `head.checkSumAdjustment`), so filling never invalidates the hash.
+Every SFNT table appears as a box in table-directory order. The table directory
+itself is not hashed, the `C2PA` table is explicitly excluded, and
+`head.checkSumAdjustment` is treated as zero. `verify_box_hash` rejects omitted,
+extra, or reordered table names with the C2PA `unknownBox` failure shape.
+
+The older `c2pa.hash.data` helpers remain available only for reading legacy
+manifests produced by earlier crate releases; new manifests should use the box
+hash API above.
 
 ### Read and verify
 
