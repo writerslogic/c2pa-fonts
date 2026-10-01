@@ -12,7 +12,7 @@
   "floss_license_osi_status": "Met",
   "floss_license_osi_justification": "Both MIT and Apache-2.0 are on the OSI-approved license list (https://opensource.org/licenses).",
   "license_location_status": "Met",
-  "license_location_justification": "LICENSE-APACHE and LICENSE-MIT exist at the repository top level (/Volumes/A/c2pa-fonts/LICENSE-APACHE, LICENSE-MIT), the standard location, and README.md links to both under '## License'.",
+  "license_location_justification": "LICENSE-APACHE and LICENSE-MIT hold the full texts (dual MIT OR Apache-2.0 per Cargo.toml); a top-level LICENSE file (identical to LICENSE-APACHE) is also present at the repository root for tooling that only recognizes that exact filename.",
   "documentation_basics_status": "Met",
   "documentation_basics_justification": "README.md covers overview, what the crate does/does not do, quick start, design, and links; src/lib.rs has crate-level //! docs and #![warn(missing_docs)] enforcing per-item documentation.",
   "documentation_interface_status": "Met",
