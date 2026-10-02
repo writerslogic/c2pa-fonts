@@ -3,8 +3,21 @@ use crate::sfnt::SfntFont;
 use crate::table::{C2paTable, C2PA_TAG};
 
 /// Read and decode the `C2PA` table from a font.
+///
+/// Returns [`Error::InvalidTable`] if the font contains more than one `C2PA`
+/// table, matching the multiplicity check [`crate::verify::verify`] applies
+/// so a crafted font can't smuggle a second, unverified table past callers
+/// that only locate/extract (step 1) without also validating (step 6).
 pub fn read_c2pa_table(font: &[u8]) -> Result<C2paTable, Error> {
     let parsed = SfntFont::parse(font)?;
+
+    let c2pa_count = parsed.tables.iter().filter(|t| t.tag == C2PA_TAG).count();
+    if c2pa_count > 1 {
+        return Err(Error::InvalidTable(format!(
+            "font contains {c2pa_count} C2PA tables; at most one is allowed"
+        )));
+    }
+
     let table = parsed.table(&C2PA_TAG).ok_or(Error::NotFound)?;
     C2paTable::decode(&table.data)
 }
@@ -66,6 +79,44 @@ mod tests {
             embed_manifest(&font, ManifestSource::remote("https://example.com/m.c2pa")).unwrap();
         assert!(matches!(
             read_manifest(&embedded),
+            Err(Error::InvalidTable(_))
+        ));
+    }
+
+    /// A font with two `C2PA` tables must be rejected by every entry point
+    /// that reads one, not just [`crate::verify::verify`] -- otherwise a
+    /// crafted font could smuggle an unverified second table past a caller
+    /// that only locates/extracts (step 1) without also validating (step 6).
+    #[test]
+    fn read_manifest_rejects_duplicate_c2pa_table() {
+        use crate::sfnt::{SfntFont, Table};
+
+        let font = sample_font();
+        let embedded =
+            embed_manifest(&font, ManifestSource::embedded(b"\x00\x01\x02".to_vec())).unwrap();
+        let mut parsed = SfntFont::parse(&embedded).unwrap();
+        let c2pa = parsed
+            .tables
+            .iter()
+            .find(|t| t.tag == C2PA_TAG)
+            .cloned()
+            .expect("embed_manifest wrote a C2PA table");
+        parsed.tables.push(Table {
+            tag: C2PA_TAG,
+            data: c2pa.data.clone(),
+        });
+        let duplicated = parsed.serialize();
+
+        assert!(matches!(
+            read_c2pa_table(&duplicated),
+            Err(Error::InvalidTable(_))
+        ));
+        assert!(matches!(
+            read_manifest(&duplicated),
+            Err(Error::InvalidTable(_))
+        ));
+        assert!(matches!(
+            read_manifest_uri(&duplicated),
             Err(Error::InvalidTable(_))
         ));
     }
