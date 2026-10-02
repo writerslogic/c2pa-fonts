@@ -125,12 +125,12 @@
   "static_analysis_fixed_justification": "CI runs clippy with `-D warnings`, which blocks merge on any finding, so medium+ findings cannot land unaddressed; commit cde4c7a 'chore: harden lints, docs, and CI' shows lint findings being fixed directly.",
   "static_analysis_often_status": "Met",
   "static_analysis_often_justification": ".github/workflows/ci.yml runs clippy on every push to main and every pull request (not just before releases), satisfying 'every commit'.",
-  "dynamic_analysis_status": "Unmet",
-  "dynamic_analysis_justification": "No dynamic analysis tool (e.g. cargo-fuzz, AFL, sanitizers) is configured anywhere in .github/workflows/ or the repo; no fuzz/ directory exists. This is a SUGGESTED criterion and its absence does not block Passing level, but it is honestly Unmet.",
+  "dynamic_analysis_status": "Met",
+  "dynamic_analysis_justification": "A cargo-fuzz target (fuzz/fuzz_targets/parse_untrusted.rs) drives the crate's untrusted-input parsers with libFuzzer; fuzz/README.md documents how to run it.",
   "dynamic_analysis_unsafe_status": "N/A",
   "dynamic_analysis_unsafe_justification": "src/lib.rs declares #![forbid(unsafe_code)] and `grep -rn unsafe src/*.rs` finds only that one forbid directive; no memory-unsafe (C/C++) code exists in this crate, so dynamic memory-safety tooling is not applicable.",
-  "dynamic_analysis_enable_assertions_status": "Unmet",
-  "dynamic_analysis_enable_assertions_justification": "No dynamic-analysis configuration exists in the repo (see dynamic_analysis above), so no assertion-enabling config exists either. SUGGESTED criterion, honestly Unmet.",
+  "dynamic_analysis_enable_assertions_status": "Met",
+  "dynamic_analysis_enable_assertions_justification": "The fuzz target builds with cargo-fuzz's default dev profile, which enables debug assertions and overflow checks, so Rust's integer-overflow and bounds checks act as assertions during fuzzing.",
   "dynamic_analysis_fixed_status": "N/A",
   "dynamic_analysis_fixed_justification": "No dynamic analysis tool is run against this project, so there are no dynamic-analysis findings to have fixed or left unfixed."
 }
